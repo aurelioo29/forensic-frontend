@@ -48,14 +48,16 @@ class AnalyzePhotoJob implements ShouldQueue
         $fileContent = Storage::disk($disk)->get($path);
 
         // call FastAPI
-        $url = config('services.forensic.url');
-        if (!$url) {
+        $base = rtrim(config('services.forensic.url'), '/');
+        if (!$base) {
             throw new \RuntimeException("FORENSIC_URL not configured. Set it in .env and config/services.php");
         }
 
-        $resp = Http::timeout(60)
+        $endpoint = $base . '/analyze';
+
+        $resp = Http::timeout(120)
             ->attach('file', $fileContent, $photo->original_filename)
-            ->post($url);
+            ->post($endpoint);
 
         if (!$resp->successful()) {
             throw new \RuntimeException("Forensic service error: HTTP {$resp->status()} - " . $resp->body());
