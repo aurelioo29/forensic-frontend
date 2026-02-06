@@ -11,7 +11,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 use Throwable;
 
 class AnalyzePhotoJob implements ShouldQueue
@@ -25,7 +24,7 @@ class AnalyzePhotoJob implements ShouldQueue
         $analysis = Analysis::with('photo')->findOrFail($this->analysisId);
         $photo = $analysis->photo;
 
-        // Mark running
+        // mark running
         $analysis->update([
             'status' => 'running',
             'error_message' => null,
@@ -38,44 +37,37 @@ class AnalyzePhotoJob implements ShouldQueue
             'message' => 'Analysis started.',
         ]);
 
-        // Read file bytes
+        // read file bytes
         $disk = $photo->storage_disk;
         $path = $photo->storage_path;
 
         if (!Storage::disk($disk)->exists($path)) {
-            throw new RuntimeException("File not found: {$disk}:{$path}");
+            throw new \RuntimeException("File not found: {$disk}:{$path}");
         }
 
         $fileContent = Storage::disk($disk)->get($path);
 
-        // Forensic base URL (must be base, not /analyze)
+        // call FastAPI
         $base = rtrim((string) config('services.forensic.url'), '/');
-        if (empty($base)) {
-            throw new RuntimeException("FORENSIC_URL not configured. Set it in .env and config/services.php");
-        }
-
-        // Safety: if someone accidentally puts /analyze in env, strip it once.
-        // (Optional, but saves you from future headaches)
-        if (str_ends_with($base, '/analyze')) {
-            $base = substr($base, 0, -strlen('/analyze'));
+        if (!$base) {
+            throw new \RuntimeException("FORENSIC_URL not configured. Set it in .env and config/services.php");
         }
 
         $endpoint = $base . '/analyze';
 
-        // Call FastAPI
         $resp = Http::timeout(120)
+            ->acceptJson()
             ->attach('file', $fileContent, $photo->original_filename)
             ->post($endpoint);
 
         if (!$resp->successful()) {
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 "Forensic service error: HTTP {$resp->status()} - " . $resp->body()
             );
         }
 
         $payload = $resp->json();
 
-        // Save result
         $analysis->update([
             'status' => 'done',
             'score' => $payload['score'] ?? null,
