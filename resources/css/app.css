@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.safelist-password-strength {
+    @apply bg-red-500 bg-orange-500 bg-yellow-500 bg-green-500;
+}
