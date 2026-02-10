@@ -59,22 +59,25 @@
                     $status === 'failed' => 'bg-red-500/15 text-red-200 border-red-400/20',
                     default => 'bg-white/10 text-slate-200 border-white/15',
                 };
+
+                // ✅ COVER IMAGE URL (copy dari show.blade.php)
+                $thumb = $p->storage_path ? asset('storage/' . $p->storage_path) : null;
             @endphp
 
             <a href="{{ route('photos.show', $p) }}"
                 class="group rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl shadow-black/20
                       hover:bg-white/10 hover:border-white/15 transition overflow-hidden">
 
-                {{-- thumb (optional) --}}
+                {{-- thumb --}}
                 <div class="h-36 bg-black/20">
-                    @php
-                        // kalau kamu punya path storage untuk thumbnail / original image, pakai di sini
-                        // contoh: $thumb = Storage::url($p->path);
-                        $thumb = null;
-                    @endphp
-
                     @if ($thumb)
-                        <img src="{{ $thumb }}" alt="" class="h-full w-full object-cover">
+                        <img src="{{ $thumb }}" alt="{{ $p->original_filename }}"
+                            class="h-full w-full object-cover" loading="lazy"
+                            onerror="this.onerror=null; this.closest('div').innerHTML = `<div class='h-full w-full flex items-center justify-center text-slate-400'>
+                                <svg xmlns=&quot;http://www.w3.org/2000/svg&quot; class=&quot;h-10 w-10 opacity-70&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;>
+                                    <path d=&quot;M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm2 0v16h12V4H6zm2 12 2.5-3 1.5 2 2-3 3 4H8z&quot; />
+                                </svg>
+                            </div>`;">
                     @else
                         <div class="h-full w-full flex items-center justify-center text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 opacity-70" viewBox="0 0 24 24"
