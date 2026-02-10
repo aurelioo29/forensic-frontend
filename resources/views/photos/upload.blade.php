@@ -32,7 +32,7 @@
                 @csrf
 
                 {{-- Dropzone --}}
-                <label for="photo"
+                <label id="dropzone" for="photo"
                     class="group block cursor-pointer rounded-2xl border border-dashed border-white/20 bg-black/20
                               p-6 text-center hover:bg-black/25 hover:border-white/30 transition">
                     <div
@@ -55,6 +55,31 @@
 
                     <input id="photo" type="file" name="photo" accept="image/*" required class="sr-only">
                 </label>
+
+                {{-- Preview + status --}}
+                <div id="uploadInfo" class="hidden rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="h-20 w-20 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                            <img id="photoPreview" class="h-full w-full object-cover" alt="Preview" />
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-white">
+                                File selected ✅
+                            </div>
+                            <div id="photoMeta" class="mt-1 text-xs text-slate-300"></div>
+
+                            <button type="button" id="clearPhoto"
+                                class="mt-3 inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10 transition">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="uploadEmpty" class="text-xs text-slate-300">
+                    No file selected yet.
+                </div>
 
                 {{-- Private checkbox --}}
                 <label class="inline-flex items-center gap-2 text-sm text-slate-200">
@@ -96,10 +121,80 @@
                 <div class="font-semibold text-slate-200">Why “Unclear” happens</div>
                 <div class="mt-1">
                     Your system is indicator-based. Some edits don’t leave reliable traces in EXIF, and recompression
-                    detection
-                    is mostly JPEG-focused.
+                    detection is mostly JPEG-focused.
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Script: Preview + Status --}}
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const input = document.getElementById("photo");
+            const dropzone = document.getElementById("dropzone");
+
+            const uploadInfo = document.getElementById("uploadInfo");
+            const uploadEmpty = document.getElementById("uploadEmpty");
+            const img = document.getElementById("photoPreview");
+            const meta = document.getElementById("photoMeta");
+            const clearBtn = document.getElementById("clearPhoto");
+
+            function formatBytes(bytes) {
+                if (!bytes && bytes !== 0) return "";
+                const units = ["B", "KB", "MB", "GB"];
+                let i = 0;
+                let num = bytes;
+                while (num >= 1024 && i < units.length - 1) {
+                    num = num / 1024;
+                    i++;
+                }
+                return `${num.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+            }
+
+            function setDropzoneActive(on) {
+                if (!dropzone) return;
+                dropzone.classList.toggle("ring-2", on);
+                dropzone.classList.toggle("ring-blue-500/30", on);
+                dropzone.classList.toggle("border-blue-400/40", on);
+            }
+
+            function resetUI() {
+                uploadInfo.classList.add("hidden");
+                uploadEmpty.classList.remove("hidden");
+                img.removeAttribute("src");
+                meta.textContent = "";
+                setDropzoneActive(false);
+            }
+
+            input.addEventListener("change", () => {
+                const file = input.files && input.files[0];
+                if (!file) return resetUI();
+
+                // show info
+                uploadEmpty.classList.add("hidden");
+                uploadInfo.classList.remove("hidden");
+                setDropzoneActive(true);
+
+                meta.textContent =
+                    `${file.name} • ${formatBytes(file.size)} • ${file.type || "unknown type"}`;
+
+                // preview image
+                if (file.type && file.type.startsWith("image/")) {
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.onload = () => URL.revokeObjectURL(url);
+                } else {
+                    img.removeAttribute("src");
+                }
+            });
+
+            clearBtn.addEventListener("click", () => {
+                input.value = "";
+                resetUI();
+            });
+
+            // initial state
+            resetUI();
+        });
+    </script>
 </x-app-layout>
